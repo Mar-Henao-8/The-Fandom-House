@@ -23,7 +23,7 @@
 - Y muchos accesorios más.
 
 ## Tecnologías
-- HTML5
+- HTML
 - CSS3
 - JavaScript
 
