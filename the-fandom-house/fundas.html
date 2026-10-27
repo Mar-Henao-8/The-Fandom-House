@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es" data-tema="hunyadi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fundas para celular | The Fandom House</title>
+  <meta name="description" content="Fundas resistentes con arte original inspirado en tus fandoms.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/logo-hunyadi.png" type="image/png">
+  <link rel="stylesheet" href="css/estilos.css">
+  <script src="js/theme.js"></script>
+</head>
+<body>
+  <header class="encabezado">
+    <nav class="nav contenedor" aria-label="Navegación principal">
+      <a class="nav__enlace" href="usuario.html">Usuario</a>
+      <a class="nav__enlace" href="contacto.html">Contacto</a>
+      <a class="nav__logo" href="index.html" aria-label="Inicio - The Fandom House" data-logo></a>
+      <a class="nav__enlace nav__carrito" href="carrito.html">Tu carrito <span class="contador" data-contador-carrito hidden>0</span></a>
+      <a class="nav__enlace" href="productos.html" aria-current="page">Productos</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="contenedor">
+      <section class="seccion">
+        <div class="seccion__intro">
+          <h1>Fundas para celular</h1>
+          <p>Fundas resistentes con arte original inspirado en tus fandoms.</p>
+        </div>
+        <div class="rejilla" data-catalogo></div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="pie">&copy; 2026 The Fandom House</footer>
+
+  <script src="js/brand.js"></script>
+  <script src="js/carrito.js"></script>
+  <script src="js/catalogo.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => pintarCatalogo('[data-catalogo]', 'fundas'));
+  </script>
+</body>
+</html>

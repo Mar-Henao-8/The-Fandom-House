@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es" data-tema="hunyadi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tu carrito | The Fandom House</title>
+  <meta name="description" content="Revisa y gestiona los productos de tu carrito.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/logo-hunyadi.png" type="image/png">
+  <link rel="stylesheet" href="css/estilos.css">
+  <script src="js/theme.js"></script>
+</head>
+<body>
+  <header class="encabezado">
+    <nav class="nav contenedor" aria-label="Navegación principal">
+      <a class="nav__enlace" href="usuario.html">Usuario</a>
+      <a class="nav__enlace" href="contacto.html">Contacto</a>
+      <a class="nav__logo" href="index.html" aria-label="Inicio - The Fandom House" data-logo></a>
+      <a class="nav__enlace nav__carrito" href="carrito.html" aria-current="page">Tu carrito <span class="contador" data-contador-carrito hidden>0</span></a>
+      <a class="nav__enlace" href="productos.html">Productos</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="contenedor">
+      <section class="seccion">
+        <div class="seccion__intro">
+          <h1>Tu carrito</h1>
+          <p>Los productos se guardan en tu navegador, así que siguen aquí cuando vuelvas.</p>
+        </div>
+        <div class="carrito">
+          <div data-lineas></div>
+          <aside class="resumen" data-resumen hidden>
+            <div class="resumen__fila"><span class="tenue">Productos</span><span data-unidades>0</span></div>
+            <div class="resumen__fila"><span class="tenue">Total</span><span class="resumen__total" data-total>$0</span></div>
+            <button class="btn btn--primario" type="button" data-pagar>Finalizar compra</button>
+            <button class="btn btn--fantasma" type="button" data-vaciar>Vaciar carrito</button>
+          </aside>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="pie">&copy; 2026 The Fandom House</footer>
+
+  <script src="js/brand.js"></script>
+  <script src="js/carrito.js"></script>
+  <script src="js/catalogo.js"></script>
+  <script>
+    const lineas = document.querySelector('[data-lineas]');
+    const resumen = document.querySelector('[data-resumen]');
+
+    function pintarCarrito() {
+      const items = Carrito.items();
+      resumen.hidden = items.length === 0;
+      if (!items.length) {
+        lineas.innerHTML = `<div class="vacio">
+            <div data-logo></div>
+            <h2>Tu carrito está vacío</h2>
+            <p>Explora el catálogo y suma tus primeros accesorios.</p>
+            <a class="btn btn--primario" href="productos.html">Ver productos</a>
+          </div>`;
+        pintarMarca();
+        return;
+      }
+      lineas.innerHTML = items.map((i) => `
+        <article class="linea">
+          <img class="linea__img" src="${i.imagen}" alt="${i.nombre}">
+          <div>
+            <h3 class="linea__nombre">${i.nombre}</h3>
+            <p class="linea__precio">${precioCOP(i.precio)}</p>
+          </div>
+          <div class="cantidad">
+            <button class="cantidad__btn" type="button" data-menos="${i.id}" aria-label="Quitar una unidad">-</button>
+            <span>${i.cantidad}</span>
+            <button class="cantidad__btn" type="button" data-mas="${i.id}" aria-label="Agregar una unidad">+</button>
+          </div>
+          <button class="linea__eliminar" type="button" data-eliminar="${i.id}" aria-label="Eliminar ${i.nombre}">&times;</button>
+        </article>`).join('');
+      document.querySelector('[data-unidades]').textContent = Carrito.unidades();
+      document.querySelector('[data-total]').textContent = precioCOP(Carrito.total());
+    }
+
+    lineas.addEventListener('click', (e) => {
+      const mas = e.target.closest('[data-mas]');
+      const menos = e.target.closest('[data-menos]');
+      const eliminar = e.target.closest('[data-eliminar]');
+      if (mas) Carrito.cambiarCantidad(mas.dataset.mas, 1);
+      if (menos) Carrito.cambiarCantidad(menos.dataset.menos, -1);
+      if (eliminar) Carrito.eliminar(eliminar.dataset.eliminar);
+    });
+    document.querySelector('[data-vaciar]').addEventListener('click', () => Carrito.vaciar());
+    document.querySelector('[data-pagar]').addEventListener('click', (e) => {
+      e.target.textContent = 'Gracias por tu compra';
+      setTimeout(() => { Carrito.vaciar(); e.target.textContent = 'Finalizar compra'; }, 1400);
+    });
+    document.addEventListener('carrito:cambio', pintarCarrito);
+    document.addEventListener('DOMContentLoaded', pintarCarrito);
+  </script>
+</body>
+</html>

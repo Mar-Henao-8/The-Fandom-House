@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es" data-tema="hunyadi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Usuario | The Fandom House</title>
+  <meta name="description" content="Perfil de usuario y configuracion de tema de The Fandom House.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/logo-hunyadi.png" type="image/png">
+  <link rel="stylesheet" href="css/estilos.css">
+  <script src="js/theme.js"></script>
+</head>
+
+<body>
+  <header class="encabezado">
+    <nav class="nav contenedor" aria-label="Navegación principal">
+      <a class="nav__enlace" href="usuario.html" aria-current="page">Usuario</a>
+      <a class="nav__enlace" href="contacto.html">Contacto</a>
+      <a class="nav__logo" href="index.html" aria-label="Inicio - The Fandom House" data-logo></a>
+      <a class="nav__enlace nav__carrito" href="carrito.html">Tu carrito <span class="contador" data-contador-carrito
+          hidden>0</span></a>
+      <a class="nav__enlace" href="productos.html">Productos</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="contenedor">
+      <section class="seccion">
+        <div class="perfil">
+          <div class="perfil__avatar">
+            <img class="perfil__foto" src="" alt="Foto de perfil" data-foto-perfil hidden>
+            <div class="perfil__logo" data-logo></div>
+          </div>
+          <div>
+            <h1 class="perfil__nombre" data-nombre-usuario>
+              Crear una cuenta
+            </h1>
+
+            <p class="perfil__usuario" data-info-usuario>
+              Aún no has iniciado sesión
+            </p>
+          </div>
+        </div>
+
+        <div class="cuenta__contenedor">
+
+          <div class="seccion__intro">
+            <h2>Crear una cuenta</h2>
+            <p>Regístrate para disfrutar de todas las funciones de The Fandom House.</p>
+          </div>
+
+          <form class="formulario" id="formulario-registro">
+
+            <div class="campo">
+              <label for="nombre-usuario">Nombre de usuario</label>
+              <input type="text" id="nombre-usuario" name="nombreUsuario" placeholder="Escribe tu nombre de usuario"
+                required>
+            </div>
+
+            <div class="campo">
+              <label for="correo">Correo electrónico</label>
+              <input type="email" id="correo" name="correo" placeholder="ejemplo@correo.com" required>
+            </div>
+
+            <div class="campo">
+              <label for="contrasena">Contraseña</label>
+
+              <div class="campo__password">
+                <input type="password" id="contrasena" name="contrasena" placeholder="Escribe tu contraseña" required>
+
+                <button type="button" class="password__mostrar" data-mostrar-password="contrasena">
+                  👁
+                </button>
+              </div>
+            </div>
+
+            <div class="campo">
+              <label for="confirmar-contrasena">Confirmar contraseña</label>
+
+              <div class="campo__password">
+                <input type="password" id="confirmar-contrasena" name="confirmarContrasena"
+                  placeholder="Repite tu contraseña" required>
+
+                <button type="button" class="password__mostrar" data-mostrar-password="confirmar-contrasena">
+                  👁
+                </button>
+              </div>
+            </div>
+
+            <div class="campo">
+              <label for="foto-perfil">Foto de perfil</label>
+
+              <input type="file" id="foto-perfil" name="fotoPerfil" accept="image/png, image/jpeg, image/webp">
+            </div>
+
+            <br>
+
+            <button type="submit" class="btn btn--primario">
+              Crear cuenta
+            </button>
+
+          </form>
+
+        </div>
+
+        <br>
+
+        <div class="seccion__intro">
+          <h2>Configuración del tema</h2>
+          <p>Elige la identidad visual con la que quieres recorrer la tienda. Tu elección se guarda y se mantiene en
+            todas las páginas.</p>
+        </div>
+
+        <div class="temas" data-temas></div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="pie">&copy; 2026 The Fandom House</footer>
+
+  <script src="js/brand.js"></script>
+  <script src="js/carrito.js"></script>
+  <script src="js/catalogo.js"></script>
+  <script>
+    const cont = document.querySelector('[data-temas]');
+    function pintarTemas() {
+      const actual = document.documentElement.dataset.tema;
+      cont.innerHTML = Object.entries(TEMAS).map(([clave, t]) => `
+        <button class="tema" type="button" data-tema-opcion="${clave}" aria-pressed="${clave === actual}">
+          <span class="tema__muestra" style="background:${t.muestra}"></span>
+          <span>
+            <span class="tema__nombre">${t.nombre}</span><br>
+            <span class="tema__estado">${clave === actual ? 'Tema activo' : 'Aplicar tema'}</span>
+          </span>
+        </button>`).join('');
+    }
+    cont.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-tema-opcion]');
+      if (btn) aplicarTema(btn.dataset.temaOpcion);
+    });
+    document.addEventListener('tema:cambio', pintarTemas);
+    document.addEventListener('DOMContentLoaded', pintarTemas);
+  </script>
+  <script>
+    document.querySelectorAll('[data-mostrar-password]').forEach(function (boton) {
+
+      boton.addEventListener('click', function () {
+
+        const idInput = this.getAttribute('data-mostrar-password');
+        const input = document.getElementById(idInput);
+
+        if (input.type === 'password') {
+          input.type = 'text';
+          this.textContent = '🙈';
+        } else {
+          input.type = 'password';
+          this.textContent = '👁';
+        }
+
+      });
+
+    });
+  </script>
+</body>
+<script>
+  const inputNombre = document.getElementById('nombre-usuario');
+  const nombrePerfil = document.querySelector('[data-nombre-usuario]');
+  const infoPerfil = document.querySelector('[data-info-usuario]');
+
+  if (inputNombre) {
+    inputNombre.addEventListener('input', function () {
+
+      const nombre = this.value.trim();
+
+      if (nombre === '') {
+        nombrePerfil.textContent = 'Crear una cuenta';
+        infoPerfil.textContent = 'Aún no has iniciado sesión';
+      } else {
+        nombrePerfil.textContent = nombre;
+        infoPerfil.textContent = '@' + nombre + ' · Miembro desde 2026';
+      }
+
+    });
+  }
+</script>
+<script>
+  const inputFoto = document.getElementById('foto-perfil');
+  const fotoPerfil = document.querySelector('[data-foto-perfil]');
+  const logoPerfil = document.querySelector('[data-logo]');
+
+  if (inputFoto) {
+    inputFoto.addEventListener('change', function () {
+
+      const archivo = this.files[0];
+
+      if (!archivo) {
+        return;
+      }
+
+      const lector = new FileReader();
+
+      lector.onload = function (evento) {
+
+        fotoPerfil.src = evento.target.result;
+        fotoPerfil.hidden = false;
+
+        if (logoPerfil) {
+          logoPerfil.style.display = 'none';
+        }
+
+      };
+
+      lector.readAsDataURL(archivo);
+
+    });
+  }
+</script>
+
+<script>
+  // Aquí irá el sistema de registro de usuarios
+</script>
+
+<script src="js/usuario.js"></script>
+
+</html>

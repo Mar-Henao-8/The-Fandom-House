@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es" data-tema="hunyadi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Fandom House | Tu fandom vive aquí</title>
+  <meta name="description" content="Tienda online de accesorios inspirados en películas, series, anime, videojuegos y música.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/logo-hunyadi.png" type="image/png">
+  <link rel="stylesheet" href="css/estilos.css">
+  <script src="js/theme.js"></script>
+</head>
+<body>
+  <header class="encabezado">
+    <nav class="nav contenedor" aria-label="Navegación principal">
+      <a class="nav__enlace" href="usuario.html">Usuario</a>
+      <a class="nav__enlace" href="contacto.html">Contacto</a>
+      <a class="nav__logo" href="index.html" aria-label="Inicio - The Fandom House" data-logo></a>
+      <a class="nav__enlace nav__carrito" href="carrito.html">Tu carrito <span class="contador" data-contador-carrito hidden>0</span></a>
+      <a class="nav__enlace" href="productos.html">Productos</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="contenedor">
+      <section class="seccion portada">
+        <div class="portada__presentacion">
+          <div data-mascota></div>
+          <div>
+            <h1 class="lema">Tu fandom <em>vive aquí.</em></h1>
+            <p class="portada__texto">Descubre accesorios inspirados en tus historias favoritas y expresa quién eres con cada detalle.</p>
+            <div class="portada__acciones">
+              <a class="btn btn--primario" href="productos.html">Ver catálogo</a>
+              <a class="btn btn--fantasma" href="usuario.html">Personalizar tema</a>
+            </div>
+          </div>
+        </div>
+        <div class="accesos">
+        <a class="acceso" href="pines.html">
+          <svg class="acceso__icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-1-4-1-6H8l3-4-1-1a4 4 0 0 1 6-5l1 1a4 4 0 0 1-5 6l-1 1 3 4h-3c0 2-1 6-1 6Z"/></svg>
+          <span>
+            <span class="acceso__nombre">Pines</span><br>
+            <span class="tenue">Coleccionables esmaltados</span>
+          </span>
+          <span class="acceso__flecha" aria-hidden="true">&rarr;</span>
+        </a>
+        <a class="acceso" href="fundas.html">
+          <svg class="acceso__icono" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10.5 5.5h3"/><path d="M9 18h6"/></svg>
+          <span>
+            <span class="acceso__nombre">Fundas para celular</span><br>
+            <span class="tenue">Arte original protegido</span>
+          </span>
+          <span class="acceso__flecha" aria-hidden="true">&rarr;</span>
+        </a>
+        <a class="acceso" href="stickers.html">
+          <svg class="acceso__icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 3H7a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h5l8-8V6a3 3 0 0 0-3-3Z"/><path d="M12 21v-5a3 3 0 0 1 3-3h5"/></svg>
+          <span>
+            <span class="acceso__nombre">Stickers</span><br>
+            <span class="tenue">Packs temáticos resistentes</span>
+          </span>
+          <span class="acceso__flecha" aria-hidden="true">&rarr;</span>
+        </a>
+        <a class="acceso" href="productos.html">
+          <svg class="acceso__icono" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>
+          <span>
+            <span class="acceso__nombre">Muchas más...</span><br>
+            <span class="tenue">Todo el catálogo</span>
+          </span>
+          <span class="acceso__flecha" aria-hidden="true">&rarr;</span>
+        </a>
+        </div>
+      </section>
+
+      <section class="seccion">
+        <div class="seccion__intro">
+          <h2>Destacados de la semana</h2>
+          <p>Una selección rotativa de piezas favoritas de la comunidad.</p>
+        </div>
+        <div class="rejilla" data-destacados></div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="pie">&copy; 2026 The Fandom House</footer>
+
+  <script src="js/brand.js"></script>
+  <script src="js/carrito.js"></script>
+  <script src="js/catalogo.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const destacados = ['pin-05', 'fun-03', 'stk-01', 'lla-01'];
+      document.querySelector('[data-destacados]').innerHTML =
+        PRODUCTOS.filter((p) => destacados.includes(p.id)).map(tarjetaProducto).join('');
+    });
+  </script>
+</body>
+</html>
