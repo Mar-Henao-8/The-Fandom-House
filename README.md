@@ -1,33 +1,174 @@
 # The Fandom House
 
-## Descripción
-**The Fandom House** es una tienda virtual dedicada a la venta de accesorios inspirados en muchos gustos. Aquí los usuarios pueden encontrar productos relacionados con películas, series, anime, videojuegos, artistas y otros fandoms, permitiéndoles expresar su personalidad a través de sus gustos.
+Tienda online de accesorios inspirados en películas, series, anime, videojuegos y música.
 
-## Características
-- Sistema de temas personalizable (Hunyadi Yellow, Auburn, Dark Slate Gray y Vanilla).
-- Perfil de usuario con configuración de tema.
-- Carrito de compras con almacenamiento local.
-- Catálogo organizado por categorías.
-- Diseño moderno, intuitivo y responsive.
-- Mascota oficial "Bolt", inspirada en el isotipo de la marca.
+Aplicación full stack con frontend en React + Vite y backend en Express usando MySQL como base de datos principal. La integración de inteligencia artificial se dejó fuera a propósito, según el alcance solicitado.
 
-## Categorías
-- Pines
-- Fundas para celular
-- Stickers
-- Anillos
-- Collares
-- Pulseras
-- Aretes
-- Llaveros
-- Y muchos accesorios más.
+## Estructura
 
-## Tecnologías
-- HTML
-- CSS3
-- JavaScript
+```text
+backend/              API Express + MySQL + autenticación JWT
+frontend/             Interfaz React + rutas públicas y privadas
+the-fandom-house/     Versión estática previa (solo referencia)
+```
+
+## Requisitos y ejecución local
+
+Necesitas Node.js 18 o superior y una base de datos MySQL disponible en localhost.
+
+### 1) Configurar backend
+
+En `backend/.env` ya queda configurada la conexión a la base de datos local solicitada:
+
+```env
+PORT=4000
+ADMIN_EMAIL=admin@thefandomhouse.com
+ADMIN_PASSWORD=fandom2026
+JWT_SECRET=cambia-este-secreto
+
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=1234
+DB_NAME=the_fandom_house
+```
+
+### 2) Instalar dependencias
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+- Frontend: http://localhost:5173
+- Backend: http://localhost:4000
+
+## Base de datos MySQL / phpMyAdmin
+
+El proyecto usa una sola fuente de verdad en MySQL para evitar inconsistencias con un almacenamiento local en JSON.
+
+Las tablas se crean automáticamente al arrancar la API y se inicializan con categorías, productos y datos básicos del administrador:
+
+- `categories`
+- `products`
+- `users`
+- `messages`
+- `orders`
+- `order_items`
+- `admin`
+
+Esto permite trabajar desde phpMyAdmin con la base de datos `the_fandom_house` usando `root` / `1234`.
+
+## Credenciales de acceso
+
+### Administrador
+
+- Email: `admin@thefandomhouse.com`
+- Contraseña: `fandom2026`
+
+### Usuario de prueba
+
+- Email: `test@gmail.com`
+- Contraseña: `password1234`
+
+## Funcionalidades implementadas
+
+### 1. Marca e identidad visual
+- Inicio con branding y estilo visual propio de The Fandom House.
+- Tema visual consistente con la marca y la mascota Bolt.
+- Navegación principal con accesos a la tienda, usuario y carrito.
+
+### 2. Catálogo de productos
+- Listado de productos por categorías.
+- Filtro por categoría desde la ruta y desde la home.
+- Tarjetas con nombre, precio, imagen, stock y categoría.
+- Productos destacados en la landing page.
+
+### 3. Carrito de compras
+- Añadir productos desde el catálogo.
+- Modificar cantidades y eliminar artículos.
+- Cálculo automático del total y número de unidades.
+- Persistencia del carrito en el navegador.
+
+### 4. Pedido real al backend
+- Envío del pedido desde la interfaz.
+- Validación de productos y cantidades.
+- Registro de pedidos y líneas de compra en MySQL.
+- Estado del pedido y total calculado.
+
+### 5. Formulario de contacto
+- Validación de nombre, correo y mensaje.
+- Envío a la API del backend.
+- Mensajes guardados en la base de datos MySQL.
+- Visualización desde el panel de administración.
+
+### 6. Autenticación y roles
+- Login unificado para usuarios y administradores.
+- Generación de JWT con rol `usuario` o `admin`.
+- Protección de rutas y endpoints según el rol.
+- Inicio de sesión de usuario normal que lleva al perfil/tienda.
+- Inicio de sesión de administrador que lleva al panel administrativo.
+
+### 7. Registro de usuarios
+- Formulario de registro con nombre, correo y contraseña.
+- Creación real de usuarios en la base de datos.
+- Acceso al perfil del usuario autenticado.
+- Opción de cerrar sesión.
+
+### 8. Perfil del usuario
+- Vista del perfil con usuario autenticado.
+- Cambio de tema visual desde la propia sección del perfil.
+- Acceso directo a productos o panel administrativo según el rol.
+
+### 9. Panel de administración
+- Resumen con estadísticas del negocio.
+- Gestión de productos: crear, editar y eliminar.
+- Subida de imagen por URL o archivo local.
+- Validación de datos del producto.
+- Visualización de mensajes y pedidos.
+- Marcado de mensajes como leídos.
+
+### 10. Gestión del catálogo con imágenes
+- Soporte para imágenes de producto en base de datos.
+- Edición desde ventana emergente.
+- Eliminación de campos de color innecesarios para la gestión basada en imágenes del producto.
+
+## Estado respecto a los requisitos del proyecto
+
+Cumple con la mayoría de requisitos funcionales de una entrega full stack de e-commerce, sin incluir IA:
+
+- App web full stack: sí
+- Página de inicio con marca propia: sí
+- Catálogo de productos: sí
+- Carrito de compra: sí
+- Formulario de contacto: sí
+- Registro y perfil de usuario: sí
+- Panel de administración: sí
+- Persistencia real en base de datos: sí
+- Separación por roles: sí
+- Imagen de producto: sí
+- Responsive y UX funcional: sí
+
+### Lo que queda pendiente para una entrega final adicional
+- Publicación real del frontend y backend en un entorno online con URL pública.
+- Configuración de despliegue final en hosting.
+- Funcionalidad de IA, que se dejó fuera por requerimiento.
+
+## Publicación
+
+1. Sube el repositorio a GitHub.
+2. Configura GitHub Pages para el frontend.
+3. Publica el backend en Render, Railway o similar.
+4. Configura la variable `VITE_API_URL` en GitHub con la URL del backend.
+5. Verifica que la base de datos del servicio desplegado tenga los mismos datos y credenciales necesarias.
 
 ## Autora
-**María Henao**
 
-© 2026 The Fandom House. Todos los derechos reservados.
+**María Henao**
