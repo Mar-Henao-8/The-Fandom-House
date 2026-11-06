@@ -3,6 +3,7 @@
  * Expone la API REST que consume el frontend (catálogo, contacto, pedidos y admin).
  */
 import crypto from 'node:crypto';
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
