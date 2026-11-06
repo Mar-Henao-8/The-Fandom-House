@@ -2,23 +2,25 @@
 
 Tienda online de accesorios inspirados en películas, series, anime, videojuegos y música.
 
-Aplicación full stack con frontend en React + Vite y backend en Express usando MySQL como base de datos principal. La integración de inteligencia artificial se dejó fuera a propósito, según el alcance solicitado.
+Aplicación full stack con frontend en React + Vite y backend en Express. La base de datos principal está conectada a Turso/LibSQL, con una capa de persistencia compatible con el esquema previo que usaba MySQL.
 
 ## Estructura
 
 ```text
-backend/              API Express + MySQL + autenticación JWT
+backend/              API Express + Turso/LibSQL + autenticación JWT
 frontend/             Interfaz React + rutas públicas y privadas
 the-fandom-house/     Versión estática previa (solo referencia)
 ```
 
-## Requisitos y ejecución local
+## Requisitos
 
-Necesitas Node.js 18 o superior y una base de datos MySQL disponible en localhost.
+- Node.js 18 o superior
+- Una base de datos Turso activa
+- Un token de autenticación válido para la base
 
-### 1) Configurar backend
+## Configuración del backend
 
-En `backend/.env` ya queda configurada la conexión a la base de datos local solicitada:
+El archivo `backend/.env` ya incluye la conexión a Turso:
 
 ```env
 PORT=4000
@@ -26,23 +28,33 @@ ADMIN_EMAIL=admin@thefandomhouse.com
 ADMIN_PASSWORD=fandom2026
 JWT_SECRET=cambia-este-secreto
 
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=1234
-DB_NAME=the_fandom_house
+TURSO_DATABASE_URL=libsql://thefandomhouse-devmanl.aws-us-east-2.turso.io
+TURSO_AUTH_TOKEN=tu_token_de_turso
+DB_URL=libsql://thefandomhouse-devmanl.aws-us-east-2.turso.io
+DB_AUTH_TOKEN=tu_token_de_turso
 ```
 
-### 2) Instalar dependencias
+> El backend acepta estas variables y las usa para conectarse a la base remota. El token real debe mantenerse seguro y no publicarse en repositorios públicos.
+
+## Ejecución local
+
+### 1) Instalar dependencias
 
 ```bash
 cd backend
 npm install
+```
+
+### 2) Arrancar el backend
+
+```bash
 npm run dev
 ```
 
+### 3) Arrancar el frontend
+
 ```bash
-cd frontend
+cd ../frontend
 npm install
 npm run dev
 ```
@@ -50,11 +62,11 @@ npm run dev
 - Frontend: http://localhost:5173
 - Backend: http://localhost:4000
 
-## Base de datos MySQL / phpMyAdmin
+## Base de datos en Turso
 
-El proyecto usa una sola fuente de verdad en MySQL para evitar inconsistencias con un almacenamiento local en JSON.
+La persistencia se ha migrado desde MySQL a LibSQL/Turso manteniendo la misma lógica de negocio del proyecto. El backend crea automáticamente las tablas si no existen y inicializa los datos base del sistema.
 
-Las tablas se crean automáticamente al arrancar la API y se inicializan con categorías, productos y datos básicos del administrador:
+Tablas principales:
 
 - `categories`
 - `products`
@@ -64,7 +76,7 @@ Las tablas se crean automáticamente al arrancar la API y se inicializan con cat
 - `order_items`
 - `admin`
 
-Esto permite trabajar desde phpMyAdmin con la base de datos `the_fandom_house` usando `root` / `1234`.
+Esto permite que la app siga funcionando igual que antes, pero con una base remota gestionada por Turso.
 
 ## Credenciales de acceso
 
@@ -100,13 +112,13 @@ Esto permite trabajar desde phpMyAdmin con la base de datos `the_fandom_house` u
 ### 4. Pedido real al backend
 - Envío del pedido desde la interfaz.
 - Validación de productos y cantidades.
-- Registro de pedidos y líneas de compra en MySQL.
+- Registro de pedidos y líneas de compra en la base remota.
 - Estado del pedido y total calculado.
 
 ### 5. Formulario de contacto
 - Validación de nombre, correo y mensaje.
 - Envío a la API del backend.
-- Mensajes guardados en la base de datos MySQL.
+- Mensajes guardados en la base de datos.
 - Visualización desde el panel de administración.
 
 ### 6. Autenticación y roles
@@ -138,7 +150,7 @@ Esto permite trabajar desde phpMyAdmin con la base de datos `the_fandom_house` u
 ### 10. Gestión del catálogo con imágenes
 - Soporte para imágenes de producto en base de datos.
 - Edición desde ventana emergente.
-- Eliminación de campos de color innecesarios para la gestión basada en imágenes del producto.
+- Eliminar color manual cuando la imagen es la fuente principal del producto.
 
 ## Estado respecto a los requisitos del proyecto
 
@@ -164,10 +176,10 @@ Cumple con la mayoría de requisitos funcionales de una entrega full stack de e-
 ## Publicación
 
 1. Sube el repositorio a GitHub.
-2. Configura GitHub Pages para el frontend.
-3. Publica el backend en Render, Railway o similar.
-4. Configura la variable `VITE_API_URL` en GitHub con la URL del backend.
-5. Verifica que la base de datos del servicio desplegado tenga los mismos datos y credenciales necesarias.
+2. Publica el frontend en GitHub Pages o Vercel.
+3. Publica el backend en Render, Railway, Fly.io o un servicio similar.
+4. Configura la variable `VITE_API_URL` con la URL del backend desplegado.
+5. Mantén las variables de entorno del backend protegidas en el servicio de despliegue.
 
 ## Autora
 

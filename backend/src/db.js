@@ -1,24 +1,39 @@
 /**
- * Persistencia de la app en MySQL.
- * La capa local en JSON queda eliminada para evitar inconsistencias
- * entre dos fuentes de verdad.
+ * Persistencia de la app con Turso / LibSQL.
+ * Mantiene la misma API de acceso que usaba el backend MySQL para no tocar la lógica de negocio.
  */
 import bcrypt from 'bcryptjs';
-import mysql from 'mysql2/promise';
+import { createClient } from '@libsql/client';
 import { CATEGORIAS, PRODUCTOS_INICIALES } from './seed.js';
 
 function fechaMysql(date = new Date()) {
-  return new Date(date).toISOString().slice(0, 19).replace('T', ' ');
+  const fecha = new Date(date);
+  if (Number.isNaN(fecha.getTime())) return new Date().toISOString().slice(0, 19).replace('T', ' ');
+  return fecha.toISOString().slice(0, 19).replace('T', ' ');
 }
 
 let cache = null;
-let pool = null;
+let db = null;
 
 function fechaSegura(valor, fallback = new Date()) {
   if (!valor) return new Date(fallback).toISOString();
   const fecha = new Date(valor);
   if (Number.isNaN(fecha.getTime())) return new Date(fallback).toISOString();
   return fecha.toISOString();
+}
+
+function obtenerConfigDb() {
+  const url = process.env.TURSO_DATABASE_URL || process.env.DB_URL || 'file:./data/the-fandom-house.db';
+  const authToken = process.env.TURSO_AUTH_TOKEN || process.env.DB_AUTH_TOKEN || process.env.DB_TOKEN || undefined;
+  return { url, authToken };
+}
+
+function obtenerDb() {
+  if (db) return db;
+
+  const { url, authToken } = obtenerConfigDb();
+  db = createClient({ url, authToken });
+  return db;
 }
 
 async function estadoInicial() {
@@ -36,142 +51,138 @@ async function estadoInicial() {
   };
 }
 
-async function obtenerPool() {
-  if (pool) return pool;
+async function ejecutarQuery(sql, params = []) {
+  const conexion = obtenerDb();
+  return conexion.execute({ sql, args: params });
+}
 
-  const nombreBase = process.env.DB_NAME || 'the_fandom_house';
-  const baseConfig = {
-    host: process.env.DB_HOST || '127.0.0.1',
-    port: Number(process.env.DB_PORT || 3306),
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '1234',
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
-    multipleStatements: true,
-    timezone: 'Z',
-  };
-
-  const conexionRaiz = mysql.createPool(baseConfig);
-  await conexionRaiz.query(`CREATE DATABASE IF NOT EXISTS \`${nombreBase}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
-  await conexionRaiz.end();
-
-  pool = mysql.createPool({
-    ...baseConfig,
-    database: nombreBase,
-  });
-
-  return pool;
+async function columnaExiste(nombreTabla, nombreColumna) {
+  const conexion = obtenerDb();
+  const resultado = await conexion.execute({ sql: `PRAGMA table_info(${JSON.stringify(nombreTabla)})`, args: [] });
+  const columnas = resultado.rows || [];
+  return columnas.some((columna) => String(columna.name || columna[1]).toLowerCase() === nombreColumna.toLowerCase());
 }
 
 export async function inicializarMysql() {
-  const conexion = await obtenerPool();
-  await conexion.query('ALTER TABLE products ADD COLUMN IF NOT EXISTS imagen TEXT NULL');
-  await conexion.query(`
-    CREATE TABLE IF NOT EXISTS categories (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      slug VARCHAR(50) NOT NULL UNIQUE,
-      nombre VARCHAR(120) NOT NULL,
+  const conexion = obtenerDb();
+
+  await conexion.execute(`CREATE TABLE IF NOT EXISTS categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      slug TEXT NOT NULL UNIQUE,
+      nombre TEXT NOT NULL,
       descripcion TEXT NOT NULL
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    );`);
 
-    CREATE TABLE IF NOT EXISTS products (
-      id VARCHAR(80) PRIMARY KEY,
-      nombre VARCHAR(160) NOT NULL,
-      categoria VARCHAR(50) NOT NULL,
-      precio INT NOT NULL,
-      color VARCHAR(20) DEFAULT '#E09F3E',
-      stock INT NOT NULL DEFAULT 0,
+  await conexion.execute(`CREATE TABLE IF NOT EXISTS products (
+      id TEXT PRIMARY KEY,
+      nombre TEXT NOT NULL,
+      categoria TEXT NOT NULL,
+      precio INTEGER NOT NULL,
+      color TEXT DEFAULT '#E09F3E',
+      stock INTEGER NOT NULL DEFAULT 0,
       imagen TEXT NULL
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    );`);
 
-    CREATE TABLE IF NOT EXISTS users (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      nombre VARCHAR(120) NOT NULL,
-      email VARCHAR(180) NOT NULL UNIQUE,
-      password_hash VARCHAR(255) NOT NULL,
-      session_jti VARCHAR(255) NULL,
-      session_expires_at DATETIME NULL,
-      creado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  await conexion.execute(`CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      session_jti TEXT NULL,
+      session_expires_at TEXT NULL,
+      creado_en TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );`);
 
-    CREATE TABLE IF NOT EXISTS messages (
-      id VARCHAR(80) PRIMARY KEY,
-      nombre VARCHAR(160) NOT NULL,
-      correo VARCHAR(180) NOT NULL,
+  await conexion.execute(`CREATE TABLE IF NOT EXISTS messages (
+      id TEXT PRIMARY KEY,
+      nombre TEXT NOT NULL,
+      correo TEXT NOT NULL,
       mensaje TEXT NOT NULL,
-      leido BOOLEAN NOT NULL DEFAULT false,
-      creado_en DATETIME NOT NULL
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      leido INTEGER NOT NULL DEFAULT 0,
+      creado_en TEXT NOT NULL
+    );`);
 
-    CREATE TABLE IF NOT EXISTS orders (
-      id VARCHAR(80) PRIMARY KEY,
-      nombre_cliente VARCHAR(160) NOT NULL,
-      correo_cliente VARCHAR(180) NOT NULL,
-      total INT NOT NULL,
-      estado VARCHAR(60) NOT NULL DEFAULT 'recibido',
-      creado_en DATETIME NOT NULL
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  await conexion.execute(`CREATE TABLE IF NOT EXISTS orders (
+      id TEXT PRIMARY KEY,
+      nombre_cliente TEXT NOT NULL,
+      correo_cliente TEXT NOT NULL,
+      total INTEGER NOT NULL,
+      estado TEXT NOT NULL DEFAULT 'recibido',
+      creado_en TEXT NOT NULL
+    );`);
 
-    CREATE TABLE IF NOT EXISTS order_items (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      order_id VARCHAR(80) NOT NULL,
-      producto_id VARCHAR(80) NOT NULL,
-      nombre VARCHAR(160) NOT NULL,
-      precio INT NOT NULL,
-      cantidad INT NOT NULL,
+  await conexion.execute(`CREATE TABLE IF NOT EXISTS order_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id TEXT NOT NULL,
+      producto_id TEXT NOT NULL,
+      nombre TEXT NOT NULL,
+      precio INTEGER NOT NULL,
+      cantidad INTEGER NOT NULL,
       FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    );`);
 
-    CREATE TABLE IF NOT EXISTS admin (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      email VARCHAR(180) NOT NULL UNIQUE,
-      password_hash VARCHAR(255) NOT NULL,
-      session_jti VARCHAR(255) NULL,
-      session_expires_at DATETIME NULL
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-  `);
+  await conexion.execute(`CREATE TABLE IF NOT EXISTS admin (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      session_jti TEXT NULL,
+      session_expires_at TEXT NULL
+    );`);
 
-  await conexion.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS session_jti VARCHAR(255) NULL');
-  await conexion.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS session_expires_at DATETIME NULL');
-  await conexion.query('ALTER TABLE admin ADD COLUMN IF NOT EXISTS session_jti VARCHAR(255) NULL');
-  await conexion.query('ALTER TABLE admin ADD COLUMN IF NOT EXISTS session_expires_at DATETIME NULL');
-
-  const [adminRows] = await conexion.query('SELECT COUNT(*) AS total FROM admin');
-  if (Number(adminRows[0].total) === 0) {
-    const admin = await estadoInicial();
-    await conexion.query('INSERT INTO admin (email, password_hash) VALUES (?, ?)', [admin.admin.email, admin.admin.passwordHash]);
+  if (!(await columnaExiste('users', 'session_jti'))) {
+    await conexion.execute('ALTER TABLE users ADD COLUMN session_jti TEXT NULL');
+  }
+  if (!(await columnaExiste('users', 'session_expires_at'))) {
+    await conexion.execute('ALTER TABLE users ADD COLUMN session_expires_at TEXT NULL');
+  }
+  if (!(await columnaExiste('admin', 'session_jti'))) {
+    await conexion.execute('ALTER TABLE admin ADD COLUMN session_jti TEXT NULL');
+  }
+  if (!(await columnaExiste('admin', 'session_expires_at'))) {
+    await conexion.execute('ALTER TABLE admin ADD COLUMN session_expires_at TEXT NULL');
+  }
+  if (!(await columnaExiste('products', 'imagen'))) {
+    await conexion.execute('ALTER TABLE products ADD COLUMN imagen TEXT NULL');
   }
 
-  const [categoriasRows] = await conexion.query('SELECT COUNT(*) AS total FROM categories');
-  if (Number(categoriasRows[0].total) === 0) {
+  const adminRows = await ejecutarQuery('SELECT COUNT(*) AS total FROM admin');
+  const totalAdmin = Number((adminRows.rows?.[0]?.total ?? adminRows.rows?.[0]?.[0] ?? 0));
+  if (totalAdmin === 0) {
+    const admin = await estadoInicial();
+    await ejecutarQuery('INSERT INTO admin (email, password_hash) VALUES (?, ?)', [admin.admin.email, admin.admin.passwordHash]);
+  }
+
+  const categoriasRows = await ejecutarQuery('SELECT COUNT(*) AS total FROM categories');
+  const totalCategorias = Number((categoriasRows.rows?.[0]?.total ?? categoriasRows.rows?.[0]?.[0] ?? 0));
+  if (totalCategorias === 0) {
     const admin = await estadoInicial();
     for (const [slug, info] of Object.entries(admin.categorias)) {
-      await conexion.query('INSERT INTO categories (slug, nombre, descripcion) VALUES (?, ?, ?)', [slug, info.nombre, info.descripcion]);
+      await ejecutarQuery('INSERT INTO categories (slug, nombre, descripcion) VALUES (?, ?, ?)', [slug, info.nombre, info.descripcion]);
     }
   }
 
-  const [productosRows] = await conexion.query('SELECT COUNT(*) AS total FROM products');
-  if (Number(productosRows[0].total) === 0) {
+  const productosRows = await ejecutarQuery('SELECT COUNT(*) AS total FROM products');
+  const totalProductos = Number((productosRows.rows?.[0]?.total ?? productosRows.rows?.[0]?.[0] ?? 0));
+  if (totalProductos === 0) {
     const admin = await estadoInicial();
     for (const producto of admin.productos) {
-      await conexion.query(
+      await ejecutarQuery(
         'INSERT INTO products (id, nombre, categoria, precio, color, stock, imagen) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [producto.id, producto.nombre, producto.categoria, producto.precio, producto.color, producto.stock, producto.imagen || null],
       );
     }
   }
 
-  const [usuarioTestRows] = await conexion.query('SELECT COUNT(*) AS total FROM users WHERE email = ?', ['test@gmail.com']);
-  if (Number(usuarioTestRows[0].total) === 0) {
+  const usuarioTestRows = await ejecutarQuery('SELECT COUNT(*) AS total FROM users WHERE email = ?', ['test@gmail.com']);
+  const totalUsuariosTest = Number((usuarioTestRows.rows?.[0]?.total ?? usuarioTestRows.rows?.[0]?.[0] ?? 0));
+  if (totalUsuariosTest === 0) {
     const passwordHash = await bcrypt.hash('password1234', 10);
-    await conexion.query('INSERT INTO users (nombre, email, password_hash) VALUES (?, ?, ?)', ['Usuario Test', 'test@gmail.com', passwordHash]);
+    await ejecutarQuery('INSERT INTO users (nombre, email, password_hash) VALUES (?, ?, ?)', ['Usuario Test', 'test@gmail.com', passwordHash]);
   }
 }
 
 export async function listarUsuarios() {
-  const conexion = await obtenerPool();
-  const [rows] = await conexion.query('SELECT id, nombre, email, creado_en FROM users ORDER BY creado_en DESC');
+  const rows = (await ejecutarQuery('SELECT id, nombre, email, creado_en FROM users ORDER BY creado_en DESC')).rows || [];
   return rows.map((usuario) => ({
     id: usuario.id,
     nombre: usuario.nombre,
@@ -182,10 +193,9 @@ export async function listarUsuarios() {
 }
 
 export async function buscarUsuarioPorEmail(email) {
-  const conexion = await obtenerPool();
   const correo = String(email || '').trim().toLowerCase();
   if (!correo) return null;
-  const [rows] = await conexion.query('SELECT * FROM users WHERE LOWER(email) = ? LIMIT 1', [correo]);
+  const rows = (await ejecutarQuery('SELECT * FROM users WHERE LOWER(email) = ? LIMIT 1', [correo])).rows || [];
   if (!rows[0]) return null;
   return {
     id: rows[0].id,
@@ -196,7 +206,6 @@ export async function buscarUsuarioPorEmail(email) {
 }
 
 export async function crearUsuario({ nombre, email, password }) {
-  const conexion = await obtenerPool();
   const correo = String(email || '').trim().toLowerCase();
   const nombreLimpio = String(nombre || '').trim();
   if (!nombreLimpio || !correo || !password) {
@@ -207,37 +216,34 @@ export async function crearUsuario({ nombre, email, password }) {
     throw new Error('Ya existe un usuario con ese correo.');
   }
   const passwordHash = await bcrypt.hash(String(password), 10);
-  const [resultado] = await conexion.query('INSERT INTO users (nombre, email, password_hash) VALUES (?, ?, ?)', [nombreLimpio, correo, passwordHash]);
+  const resultado = await ejecutarQuery('INSERT INTO users (nombre, email, password_hash) VALUES (?, ?, ?)', [nombreLimpio, correo, passwordHash]);
   return {
-    id: resultado.insertId,
+    id: Number(resultado.lastInsertRowid ?? 0),
     nombre: nombreLimpio,
     email: correo,
   };
 }
 
 export async function guardarSesionUsuario({ email, jti, expiresAt }) {
-  const conexion = await obtenerPool();
-  await conexion.query(
+  await ejecutarQuery(
     'UPDATE users SET session_jti = ?, session_expires_at = ? WHERE LOWER(email) = ?',
     [jti, fechaMysql(expiresAt), String(email || '').trim().toLowerCase()],
   );
 }
 
 export async function guardarSesionAdmin({ email, jti, expiresAt }) {
-  const conexion = await obtenerPool();
-  await conexion.query(
+  await ejecutarQuery(
     'UPDATE admin SET session_jti = ?, session_expires_at = ? WHERE LOWER(email) = ?',
     [jti, fechaMysql(expiresAt), String(email || '').trim().toLowerCase()],
   );
 }
 
 export async function sesionValida({ rol, email, jti }) {
-  const conexion = await obtenerPool();
   const tabla = rol === 'admin' ? 'admin' : 'users';
-  const [rows] = await conexion.query(
+  const rows = (await ejecutarQuery(
     `SELECT session_jti, session_expires_at FROM ${tabla} WHERE LOWER(email) = ? LIMIT 1`,
     [String(email || '').trim().toLowerCase()],
-  );
+  )).rows || [];
 
   if (!rows[0]) return false;
   if (!rows[0].session_jti || rows[0].session_jti !== jti) return false;
@@ -250,14 +256,13 @@ export async function cargarStore() {
   if (cache) return cache;
 
   await inicializarMysql();
-  const conexion = await obtenerPool();
 
-  const [categoriasRows] = await conexion.query('SELECT * FROM categories ORDER BY id');
-  const [productosRows] = await conexion.query('SELECT * FROM products ORDER BY nombre');
-  const [mensajesRows] = await conexion.query('SELECT * FROM messages ORDER BY creado_en DESC');
-  const [pedidosRows] = await conexion.query('SELECT * FROM orders ORDER BY creado_en DESC');
-  const [itemsRows] = await conexion.query('SELECT * FROM order_items ORDER BY order_id, id');
-  const [adminRows] = await conexion.query('SELECT email, password_hash FROM admin ORDER BY id DESC LIMIT 1');
+  const categoriasRows = (await ejecutarQuery('SELECT * FROM categories ORDER BY id')).rows || [];
+  const productosRows = (await ejecutarQuery('SELECT * FROM products ORDER BY nombre')).rows || [];
+  const mensajesRows = (await ejecutarQuery('SELECT * FROM messages ORDER BY creado_en DESC')).rows || [];
+  const pedidosRows = (await ejecutarQuery('SELECT * FROM orders ORDER BY creado_en DESC')).rows || [];
+  const itemsRows = (await ejecutarQuery('SELECT * FROM order_items ORDER BY order_id, id')).rows || [];
+  const adminRows = (await ejecutarQuery('SELECT email, password_hash FROM admin ORDER BY id DESC LIMIT 1')).rows || [];
 
   const categorias = Object.fromEntries(
     categoriasRows.map((r) => [r.slug, { nombre: r.nombre, descripcion: r.descripcion }]),
@@ -336,47 +341,47 @@ export async function actualizar(mutador) {
   const store = await cargarStore();
   const resultado = await mutador(store);
 
-  const conexion = await obtenerPool();
-  await conexion.query('DELETE FROM order_items');
-  await conexion.query('DELETE FROM orders');
-  await conexion.query('DELETE FROM messages');
-  await conexion.query('DELETE FROM products');
-  await conexion.query('DELETE FROM categories');
-  await conexion.query('DELETE FROM admin');
+  const conexion = obtenerDb();
+  await conexion.execute('DELETE FROM order_items');
+  await conexion.execute('DELETE FROM orders');
+  await conexion.execute('DELETE FROM messages');
+  await conexion.execute('DELETE FROM products');
+  await conexion.execute('DELETE FROM categories');
+  await conexion.execute('DELETE FROM admin');
 
   for (const [slug, info] of Object.entries(store.categorias || {})) {
-    await conexion.query('INSERT INTO categories (slug, nombre, descripcion) VALUES (?, ?, ?)', [slug, info.nombre, info.descripcion]);
+    await ejecutarQuery('INSERT INTO categories (slug, nombre, descripcion) VALUES (?, ?, ?)', [slug, info.nombre, info.descripcion]);
   }
 
   for (const producto of store.productos || []) {
-    await conexion.query(
+    await ejecutarQuery(
       'INSERT INTO products (id, nombre, categoria, precio, color, stock, imagen) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [producto.id, producto.nombre, producto.categoria, Number(producto.precio), producto.color || '#E09F3E', Number(producto.stock || 0), producto.imagen || null],
     );
   }
 
   for (const mensaje of store.mensajes || []) {
-    await conexion.query(
+    await ejecutarQuery(
       'INSERT INTO messages (id, nombre, correo, mensaje, leido, creado_en) VALUES (?, ?, ?, ?, ?, ?)',
-      [mensaje.id, mensaje.nombre, mensaje.correo, mensaje.mensaje, Boolean(mensaje.leido), new Date(mensaje.creadoEn || Date.now()).toISOString().slice(0, 19).replace('T', ' ')],
+      [mensaje.id, mensaje.nombre, mensaje.correo, mensaje.mensaje, Boolean(mensaje.leido) ? 1 : 0, fechaMysql(mensaje.creadoEn || Date.now())],
     );
   }
 
   for (const pedido of store.pedidos || []) {
-    await conexion.query(
+    await ejecutarQuery(
       'INSERT INTO orders (id, nombre_cliente, correo_cliente, total, estado, creado_en) VALUES (?, ?, ?, ?, ?, ?)',
-      [pedido.id, pedido.cliente?.nombre || 'Cliente web', pedido.cliente?.correo || '', Number(pedido.total), pedido.estado || 'recibido', new Date(pedido.creadoEn || Date.now()).toISOString().slice(0, 19).replace('T', ' ')],
+      [pedido.id, pedido.cliente?.nombre || 'Cliente web', pedido.cliente?.correo || '', Number(pedido.total), pedido.estado || 'recibido', fechaMysql(pedido.creadoEn || Date.now())],
     );
 
     for (const item of pedido.items || []) {
-      await conexion.query(
+      await ejecutarQuery(
         'INSERT INTO order_items (order_id, producto_id, nombre, precio, cantidad) VALUES (?, ?, ?, ?, ?)',
         [pedido.id, item.id, item.nombre, Number(item.precio), Number(item.cantidad)],
       );
     }
   }
 
-  await conexion.query('INSERT INTO admin (email, password_hash) VALUES (?, ?)', [store.admin.email, store.admin.passwordHash]);
+  await ejecutarQuery('INSERT INTO admin (email, password_hash) VALUES (?, ?)', [store.admin.email, store.admin.passwordHash]);
   cache = store;
   return resultado;
 }
