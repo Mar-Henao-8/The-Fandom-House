@@ -4,7 +4,7 @@
  */
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { leer, sesionValida } from './db.js';
+import { leer } from './db.js';
 
 const SECRETO = process.env.JWT_SECRET || 'tfh-secreto-local-cambiar-en-produccion';
 
@@ -13,8 +13,8 @@ export function firmarToken(payload, expiresIn = '30m') {
 }
 
 async function validarSesionActual(payload) {
-  if (!payload?.email || !payload?.jti || !payload?.rol) return false;
-  return sesionValida({ rol: payload.rol, email: payload.email, jti: payload.jti });
+  if (!payload?.email || !payload?.rol) return false;
+  return true;
 }
 
 export async function validarCredenciales(email, password) {
@@ -39,7 +39,7 @@ export async function exigirAdmin(req, res, next) {
 
     const valido = await validarSesionActual(payload);
     if (!valido) {
-      return res.status(401).json({ error: 'La sesión expiró o fue invalidada en otro dispositivo.' });
+      return res.status(401).json({ error: 'La sesión expiró. Vuelve a iniciar sesión.' });
     }
 
     req.admin = payload;
@@ -59,7 +59,7 @@ export async function exigirUsuario(req, res, next) {
     const payload = jwt.verify(token, SECRETO);
     const valido = await validarSesionActual(payload);
     if (!valido) {
-      return res.status(401).json({ error: 'La sesión expiró o fue invalidada en otro dispositivo.' });
+      return res.status(401).json({ error: 'La sesión expiró. Vuelve a iniciar sesión.' });
     }
     req.usuario = payload;
     return next();

@@ -3,7 +3,10 @@
  * La URL se configura con VITE_API_URL para que el mismo frontend
  * funcione en local y, al publicarse en GitHub Pages, apunte a la API desplegada.
  */
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const BASE = (() => {
+  const url = import.meta.env.VITE_API_URL?.trim();
+  return url ? url.replace(/\/$/, '') : 'http://localhost:4000';
+})();
 
 async function pedir(ruta, opciones = {}) {
   const headers = { 'Content-Type': 'application/json', ...(opciones.headers || {}) };
